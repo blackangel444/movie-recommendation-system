@@ -1,0 +1,84 @@
+import streamlit as st
+import pandas as pd
+import requests
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+API_KEY = "2a52ad5e919f5b258d5f0d81cb5d2b1a"
+
+# Fetch movie poster
+def fetch_poster(movie_id):
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={API_KEY}&language=en-US"
+    data = requests.get(url).json()
+    poster_path = data['poster_path']
+    full_path = "https://image.tmdb.org/t/p/w500/" + poster_path
+    return full_path
+
+# Load data
+movies = pd.read_csv("tmdb_5000_movies.csv")
+credits = pd.read_csv("tmdb_5000_credits.csv")
+
+movies = movies.merge(credits, on='title')
+movies = movies[['movie_id','title','overview','genres','keywords','cast','crew']]
+movies = movies.fillna('')
+
+movies['tags'] = movies['overview'] + movies['genres'] + movies['keywords'] + movies['cast']
+
+# Vectorization
+cv = CountVectorizer(max_features=5000, stop_words='english')
+vectors = cv.fit_transform(movies['tags']).toarray()
+
+similarity = cosine_similarity(vectors)
+
+def recommend(movie):
+
+    movie_index = movies[movies['title'] == movie].index[0]
+    distances = similarity[movie_index]
+
+    movie_list = sorted(list(enumerate(distances)),
+                        reverse=True,
+                        key=lambda x: x[1])[1:6]
+
+    recommended_movies = []
+    posters = []
+
+    for i in movie_list:
+        movie_id = movies.iloc[i[0]].movie_id
+        recommended_movies.append(movies.iloc[i[0]].title)
+        posters.append(fetch_poster(movie_id))
+
+    return recommended_movies, posters
+
+
+st.title("Movie Recommendation System")
+
+selected_movie = st.selectbox(
+    "Type or select a movie",
+    movies['title'].values
+)
+
+if st.button('Recommend'):
+
+    names, posters = recommend(selected_movie)
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    with col1:
+        st.text(names[0])
+        st.image(posters[0])
+
+    with col2:
+        st.text(names[1])
+        st.image(posters[1])
+
+    with col3:
+        st.text(names[2])
+        st.image(posters[2])
+
+    with col4:
+        st.text(names[3])
+        st.image(posters[3])
+
+    with col5:
+        st.text(names[4])
+        st.image(posters[4])
