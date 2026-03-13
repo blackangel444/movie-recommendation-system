@@ -4,7 +4,7 @@ import requests
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-API_KEY = "2a52ad5e919f5b258d5f0d81cb5d2b1a"
+API_KEY = "YOUR_API_KEY"
 
 # Fetch movie poster
 def fetch_poster(movie_id):
